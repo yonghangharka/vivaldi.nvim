@@ -1,0 +1,1421 @@
+local function clamp(component)
+  return math.min(math.max(component, 0), 255)
+end
+local vivaldi_color_table
+local function LightenDarkenColor(col, amt)
+  if type(amt) == 'number' then
+    amt = { amt, amt, amt }
+  end
+  local num = tonumber(col:sub(2), 16)
+  if num == nil then
+    return col
+  end
+  if math.floor(amt[1]) ~= amt[1] then -- a float
+    amt[1] = math.floor(amt[1] * 0x100)
+    amt[2] = math.floor(amt[1] * 0x100)
+    amt[3] = math.floor(amt[1] * 0x100)
+  end
+  local r = math.floor(num / 0x10000) + amt[1]
+  local g = (math.floor(num / 0x100) % 0x100) + amt[2]
+  local b = (num % 0x100) + amt[3]
+  return string.format('#%06x', clamp(r) * 0x10000 + clamp(g) * 0x100 + clamp(b))
+end
+
+local function LightenDarkenColorScheme(values, amt)
+  values.white = LightenDarkenColor(values.white, amt)
+  values.br_white = LightenDarkenColor(values.br_white, amt)
+  values.green = LightenDarkenColor(values.green, amt)
+  values.green2 = LightenDarkenColor(values.green2, amt)
+  values.br_green = LightenDarkenColor(values.br_green, amt)
+  values.yellow = LightenDarkenColor(values.yellow, amt)
+  values.br_yellow = LightenDarkenColor(values.br_yellow, amt)
+  values.blue = LightenDarkenColor(values.blue, amt)
+  values.blue1 = LightenDarkenColor(values.blue1, amt)
+  values.blue2 = LightenDarkenColor(values.blue2, amt)
+  values.br_blue = LightenDarkenColor(values.br_blue, amt)
+  values.purple = LightenDarkenColor(values.purple, amt)
+  values.br_purple = LightenDarkenColor(values.br_purple, amt)
+  values.cyan = LightenDarkenColor(values.cyan, amt)
+  values.br_cyan = LightenDarkenColor(values.br_cyan, amt)
+
+  values.magenta = LightenDarkenColor(values.magenta, amt)
+  values.gray = LightenDarkenColor(values.gray, amt)
+  values.gray5 = LightenDarkenColor(values.gray5, amt)
+  values.gray7 = LightenDarkenColor(values.gray7, amt)
+
+  values.orange = LightenDarkenColor(values.orange, amt)
+  return values
+end
+
+local function vivaldi_init()
+  local vivaldi = {
+    -- Common colors
+
+    white = '#EEEFFF',
+    br_white = '#FEFFFF',
+    lightgray = '#A8ACB4',
+    gray = '#888CA4',
+    gray5 = '#5f496e',
+    gray7 = '#777087',
+    darkgray = '#676067',
+    black = '#07050f',
+    dark = '#13113f',
+    darker = '#07102f',
+    neardark2 = '#282437',
+    aqua = '#66d9ef',
+    red = '#F07178',
+    red1 = '#ec5f67',
+    br_red = '#f9a3a3',
+    red2 = '#F92772',
+    caramel = '#f9c37a',
+    crimson = '#DC143C',
+    darkred = '#821040',
+    darkred2 = '#dc6068',
+    darkred3 = '#4c0018',
+
+    violet1 = '#EE82EE',
+    tomato = '#FF6347',
+    cranberry = '#CD5C5C',
+    emerald = '#50c878',
+    sky = '#87ceeb',
+    green = '#C3E88D',
+    lime = '#98EE64',
+    green1 = '#1aad16',
+    br_green = '#1afd16',
+    green2 = '#77d507',
+
+    yellow = '#FFCB6B',
+    br_yellow = '#FFFB6B',
+    yellow1 = '#fbec9f',
+    yellow2 = '#bBa03A',
+    tan = '#DDCFBF',
+    brown = '#925632',
+
+    blue = '#82AAFF',
+    paleblue = '#B0C9FF',
+    blue1 = '#10aef8',
+    br_blue = '#408ef8',
+    blue2 = '#01d5f1',
+    cyan = '#89DDFF',
+    br_cyan = '#A9EDFF',
+
+    magenta = '#BF32BF',
+    hoki = '#5f7e97',
+    purple = '#C792EA',
+    br_purple = '#D792FA',
+    violet = '#B66FFD',
+
+    purple1 = '#ae81ef',
+    purple2 = '#9e71cf',
+    purple3 = '#7d2c9d',
+    purple4 = '#7202da',
+    purple5 = '#b480d6',
+    darkpurple = '#57308a',
+    darkpurple2 = '#400c5d',
+
+    orange = '#F78C6C',
+    red_orange = '#af5f5f',
+    coral = '#ff7f50',
+    pink = '#FF9CAC',
+    pink1 = '#da71c2',
+    pink2 = '#f19bb6',
+    pink3 = '#fecbc9',
+    pink4 = '#c988ce',
+    -- Dark colors
+    darkgreen = '#abcf76',
+    darkgreen2 = '#2b4f06',
+    darkyellow = '#e6b455',
+    darkblue = '#5c7b9b',
+    darkcyan = '#7196a7',
+    darkorange = '#e2795b',
+    highlight_style = 'bold,italic',
+    search_style = 'reverse,bold',
+    none = 'NONE',
+  }
+
+  local function get_default(vivaldi_colors)
+    return {
+      statement = vivaldi_colors.pink,
+      symbol = vivaldi_colors.br_cyan,
+      operator = vivaldi_colors.cyan,
+      label = vivaldi_colors.purple1,
+      condition = vivaldi_colors.magenta,
+      keyword = vivaldi_colors.purple,
+      keyword_func = vivaldi_colors.sky,
+      func = vivaldi_colors.blue2,
+      method = vivaldi_colors.br_cyan,
+      comments = vivaldi_colors.warmgrey,
+      number = vivaldi_colors.coral,
+      float = vivaldi_colors.orange,
+      char = vivaldi_colors.tan,
+      variable = vivaldi_colors.blue,
+      parameter = vivaldi_colors.pink1,
+      class = vivaldi_colors.cyan,
+      typedef = vivaldi_colors.red2,
+      punctutation = vivaldi_colors.br_blue,
+      structure = vivaldi_colors.purple2,
+      cursor = '#FFCC80',
+      bright = vivaldi_colors.br_white,
+
+      textdark = vivaldi_colors.gray,
+      text = vivaldi_colors.white,
+
+      field = vivaldi_colors.blue1,
+      bool = vivaldi_colors.orange,
+      string = vivaldi_colors.green,
+      const = vivaldi_colors.yellow,
+      directory = vivaldi_colors.blue,
+
+      bg = vivaldi_colors.dark,
+      bg_darker = vivaldi_colors.darker,
+      bg_alt = vivaldi_colors.neardark,
+
+      selection = vivaldi_colors.gray7,
+      search_fg = vivaldi_colors.orange,
+      search_bg = vivaldi_colors.black,
+      inc_search = vivaldi_colors.yellow,
+      contrast = vivaldi_colors.dark,
+      less_active = vivaldi_colors.neardark2,
+      bracket = vivaldi_colors.orange,
+      active = vivaldi_colors.gray5,
+      more_active = vivaldi_colors.gray7,
+      border = vivaldi_colors.gray5,
+      line_numbers = vivaldi_colors.gray7,
+      highlight = vivaldi_colors.gray5,
+      disabled = vivaldi_colors.darkgray,
+      precondit = vivaldi_colors.br_blue,
+      accent = vivaldi_colors.gray7,
+      error = vivaldi_colors.br_red,
+      link = vivaldi_colors.darkblue,
+      type = vivaldi_colors.br_yellow,
+    }
+  end
+  vivaldi = vim.tbl_extend('keep', vivaldi, get_default(vivaldi))
+
+  local vivaldi_moonlight = {
+    -- Common colors
+
+    white = '#EEF5FF',
+    gray = '#a1abe0',
+    warmgrey = '#8c9a9b',
+    dark = '#212337',
+    darker = '#1A2030',
+
+    black = '#101418',
+    red = '#ff757f',
+    green = '#4dc4a0',
+    yellow = '#ffe777',
+    yellow1 = '#efc727',
+    br_yellow = '#efc727',
+    paleblue = '#B0C9FF',
+    cyan = '#79e4fc',
+    br_cyan = '#4994cc',
+
+    blue = '#3481d9',
+    blue1 = '#94c1f9',
+    blue2 = '#6491a9',
+    darkblue = '#24748a',
+    br_blue = '#3aa1cc',
+    purple = '#b4a4f4',
+    purple1 = '#c4d4f4',
+    orange = '#f67f81',
+    pink = '#ecb2f0',
+  }
+  local moonlight = function()
+    return {
+      bg = vivaldi_moonlight.dark,
+      bg_darker = '#060816',
+      darker = '#060816',
+      bg_alt = '#1B1E2B',
+      fg = '#fefcd7',
+      text = '#f5fdac',
+      string = '#c5cdcc',
+      variable = '#3aa7c7',
+      type = vivaldi_moonlight.blue2,
+      condition = vivaldi_moonlight.br_blue,
+      keyword = vivaldi_moonlight.green,
+      keyword_func = vivaldi_moonlight.cyan,
+      comments = vivaldi_moonlight.darkblue,
+      func = vivaldi_moonlight.br_blue,
+      method = vivaldi_moonlight.cyan,
+      bracket = vivaldi_moonlight.yellow1,
+      selection = '#403c64',
+      structure = 'HotPink',
+      class = 'PaleVioletRed',
+      contrast = '#1b1c2b',
+      less_active = '#222a30',
+      active = '#24344c',
+      more_active = '#324558',
+      border = '#413893',
+      line_numbers = vivaldi_moonlight.hoki,
+      highlight = '#514b70',
+      disabled = '#515772',
+      cursor = '#F1E4DC',
+      accent = '#a3ace1',
+      tag = vivaldi.cyan,
+      error = '#EF83D0',
+      search_bg = vivaldi.black,
+      search_fg = '#8498ac',
+      link = '#D9BBE4',
+    }
+  end
+
+  local vivaldi_dracula = {
+    -- Common colors
+    white = '#FEF8F2',
+    gray = '#a1abe0',
+    dark = '#21222c',
+    darker = '#141520',
+    black = '#101010',
+    red = '#ff555f',
+    green = '#50fa7b',
+    yellow = '#f1fa87',
+    paleblue = '#8697b0',
+    cyan = '#8be4f1',
+    blue = '#04d1f9',
+    purple = '#bd94f4',
+    orange = '#ff79c1',
+    pink = '#ff79c7',
+  }
+  local dracula = function()
+    return {
+      bg = vivaldi.dark,
+      bg_alt = '#282A36',
+      bg_darker = '#191a21',
+      fg = '#f4f3f2',
+      text = '#a5adec',
+      func = '#5FF67D',
+      method = '#7FE65D',
+      variable = '#F5E2ED',
+      statement = '#a94934',
+      field = '#9373A5',
+      string = '#FAC739',
+      keyword = '#FE57C0',
+      keyword_func = '#FEC750',
+      condition = '#EF70A0',
+      structure = 'DeepPink',
+      class = 'salmon',
+      const = '#9876AA',
+      bracket = '#f8f6AA',
+      comments = '#6476a6',
+      number = vivaldi.purple,
+      selection = '#483031',
+      contrast = '#2b2c3b',
+      less_active = '#302f3f',
+      active = '#363B40',
+      more_active = '#3d3f4f',
+      border = '#5144a3',
+      precondit = vivaldi.yellow,
+      line_numbers = '#5b6395',
+      highlight = '#716f90',
+      disabled = '#615752',
+      cursor = '#7c44fc',
+      accent = '#a34c81',
+      error = '#FF5370',
+      tag = vivaldi.cyan,
+      link = '#80CBC4',
+      type = vivaldi.blue,
+    }
+  end
+
+  local vivaldi_dracula_blood = {
+    -- Common colors
+    white = '#EEE8EE',
+    gray = '#a1abe0',
+
+    dark = '#1D1825',
+    darker = '#191321',
+    black = '#100511',
+    red = '#A71906',
+    salmon = '#F7856E',
+    green = '#8FE067',
+    teal = '#4DB380',
+    yellow = '#FFC66B',
+    paleblue = '#8677c0',
+    cyan = '#299999',
+    blue = '#5594EC',
+    purple = '#A781BB',
+    orange = '#DA632B',
+    magenta = '#D184C7',
+    pink = '#fe69c7',
+  }
+  local dracula_blood = function()
+    return {
+      bg = vivaldi_dracula_blood.dark,
+      bg_alt = '#2C2C34',
+      bg_darker = vivaldi_dracula_blood.darker,
+      fg = '#E8E8E3',
+      bg2 = '#103b41',
+      search_fg = vivaldi_dracula_blood.salmon,
+      statement = vivaldi.darkorange,
+      func = 'PaleGreen',
+      method = '#A0E210',
+      text = '#c5ddfc',
+      comments = '#8A6A8A',
+      keyword = '#CC4832',
+      variable = '#F5D2DD',
+      string = '#F0C366',
+      const = '#9876CA',
+      condition = '#EF70A0',
+      contrast = '#2f2c3b',
+      less_active = '#242028',
+      active = '#453737',
+      more_active = '#584a4e',
+      border = '#814265',
+      line_numbers = '#6F7795',
+      highlight = '#515b70',
+      disabled = '#6f5456',
+      field = vivaldi_dracula_blood.paleblue,
+      cursor = '#7c44fc',
+      accent = '#a34ca1',
+      error = '#EF4360',
+      type = '#F070C0',
+    }
+  end
+
+  local vivaldi_monokai = {
+    -- Common colors
+
+    white = '#E8E8E3',
+    white2 = '#d8d8d3',
+    gray = '#8F908A',
+    lightgray = '#A7AFA1',
+
+    dark = '#262721',
+    darker = '#191a21',
+    black = '#121812',
+
+    darkgrey = '#64645e',
+    warmgrey = '#75715E',
+
+    pink = '#F92772',
+    green = '#A6E22D',
+    yellow = '#E6DB74',
+    darkyellow = '#A67B44',
+    orange = '#FD9720',
+    purple = '#ae81ff',
+    red = '#e73c50',
+    purered = '#ff0000',
+    darkred = '#5f0000',
+
+    addfg = '#d7ffaf',
+    addbg = '#5f875f',
+    delfg = '#ff8b8b',
+    delbg = '#f75f5f',
+    changefg = '#d7d7ff',
+    changebg = '#5f5f87',
+
+    cyan = '#A1EFE4',
+    br_green = '#9EC400',
+    br_yellow = '#E7C547',
+    br_blue = '#63D6FA',
+    br_purple = '#B77EE0',
+    br_cyan = '#54CED6',
+    br_white = '#FFFFFF',
+
+    salmon = '#F7856E',
+    teal = '#4DB380',
+    paleblue = '#a6a7d0',
+    blue = '#5594EC',
+    magenta = '#D184C7',
+  }
+  local monokai = function()
+    return {
+      -- syntax
+      bg = vivaldi_monokai.dark,
+      bg_alt = '#30312A',
+      bg_darker = vivaldi_monokai.darker,
+      fg = '#CED1D4',
+      bg2 = '#103b41',
+      statement = '#F82773',
+      symbol = '#E8E8E3',
+      operator = '#E03077',
+      label = '#E03077',
+      condition = '#EF3060',
+      keyword = '#E03077',
+      func = '#AEE23F',
+      method = '#A0E210',
+      text = '#d5edfc',
+      comments = '#75715E',
+      number = '#ae8eff',
+      char = '#E6DB74',
+      variable = vivaldi_monokai.changefg,
+      parameter = vivaldi_monokai.orange,
+      class = vivaldi_monokai.blue,
+      typedef = '#6570EF',
+
+      field = vivaldi_monokai.br_blue,
+      bool = '#E04480',
+      string = '#F0C366',
+      const = '#A876FA',
+      selection = '#474b51',
+      search_bg = '#252056',
+      search_fg = vivaldi_monokai.dark_yellow,
+      inc_search = vivaldi_monokai.br_yellow,
+      contrast = '#1b1c2b',
+      less_active = '#343032',
+      active = '#3E383A',
+      more_active = '#503f4f',
+      border = '#414245',
+      line_numbers = '#676765',
+      highlight = '#515b70',
+      disabled = '#4f5466',
+      cursor = '#7c44fc',
+      accent = '#66d9ef',
+      error = '#EF4360',
+      link = '#80CBC4',
+      type = '#66d9ef',
+    }
+  end
+
+  local mariana_colors = {
+    -- Common colors
+    dark = '#2A333C',
+    darker = '#243037',
+    black = '#102023',
+    white = '#FFFFFF',
+    white2 = '#F7F7F7',
+    white3 = '#D8DEE9',
+    grey = '#333333',
+    lightgray = '#a7abbd',
+
+    darkgrey = '#64645e',
+    warmgrey = '#75715E',
+
+    pink = '#C695C6',
+    green = '#99C794',
+    aqua = '#66d9ef',
+    yellow = '#E6DB74',
+    orange = '#F9AE28',
+    orange2 = '#EE932B',
+    orange3 = '#FAC761',
+    purple = '#ae81ff',
+    red = '#EC5F66',
+    red2 = '#F97B58',
+    purered = '#ff0000',
+    darkred = '#5f0000',
+
+    blue = '#6699CC',
+    blue1 = '#6699CC',
+    blue2 = '#3E4A55',
+    blue3 = '#2A333C',
+    blue4 = '#64738A',
+    blue5 = '#5F7484',
+    blue5_day = '#343d48', -- note: this is base color of original mariana
+    blue6 = '#A6ACB9',
+    blue7 = '#304868',
+
+    blue8 = '#243038',
+    blue9 = '#303540',
+    blueA = '#B4C0F0',
+    blueB = '#303449',
+    blueC = '#B0C4D5',
+
+    cyan = '#A1EFE4',
+    br_green = '#9EC400',
+    br_yellow = '#E7C547',
+    br_blue = '#7AA6DA',
+    br_purple = '#B77EE0',
+    br_cyan = '#54CED6',
+    br_white = '#FFFFFF',
+
+    salmon = '#F7856E',
+    teal = '#4DB380',
+    paleblue = '#a6a7e0',
+    magenta = '#D184C7',
+  }
+  local mariana = function()
+    return {
+      bg = mariana_colors.dark,
+      bg_alt = mariana_colors.blue9,
+      bg_darker = mariana_colors.darker,
+      fg = mariana_colors.white3,
+      bg2 = '#103b41',
+      statement = '#F82773',
+      symbol = mariana_colors.red,
+      operator = mariana_colors.red2,
+      label = mariana_colors.orange,
+      condition = mariana_colors.red,
+      keyword = mariana_colors.red,
+      func = mariana_colors.blueA,
+      method = mariana_colors.pink,
+      text = mariana_colors.white3,
+      comments = mariana_colors.blue6,
+      number = mariana_colors.orange,
+      char = mariana_colors.pink,
+      variable = mariana_colors.white3,
+      parameter = vivaldi.orange,
+      class = mariana_colors.pink,
+      typedef = mariana_colors.br_cyan,
+      punctutation = mariana_colors.blue5,
+
+      field = mariana_colors.blueC,
+      bool = '#E04480',
+      string = mariana_colors.green,
+      const = mariana_colors.red,
+      selection = '#575b61',
+      search_fg = mariana_colors.green,
+      search_bg = mariana_colors.grey,
+      inc_search = mariana_colors.orange2,
+      contrast = mariana_colors.blue2,
+      less_active = mariana_colors.blue2,
+      float = mariana_colors.orange,
+      bracket = mariana_colors.orange,
+      active = mariana_colors.blue7,
+      more_active = mariana_colors.blue5,
+      border = mariana_colors.blue4,
+      line_numbers = mariana_colors.blue1,
+      highlight = '#515b70',
+      disabled = mariana_colors.blue4,
+      cursor = '#7c44fc',
+      accent = mariana_colors.white3,
+      error = '#EF4360',
+      link = '#80CBC4',
+      type = '#66d9ef',
+    }
+  end
+
+  local emerald_colors = {
+    -- Common colors
+    white = '#E0FFE0',
+    white2 = '#D0E7D0',
+    white3 = '#A8DEB9',
+    grey = '#233323',
+    darkgray = '#476b61',
+
+    dark = '#133020',
+    darker = '#101D12',
+    black = '#08170A',
+
+    caramel = '#f9c37a',
+    lightgrey = '#64645e',
+    warmgrey = '#657150',
+
+    pink = '#D675D6',
+    green = '#147816',
+    blue = '#36a5fa',
+    aqua = '#66c9cf',
+    yellow = '#C2DD54',
+    yellow2 = '#A2ED34',
+    orange = '#F9AE58',
+    orange2 = '#cd8b59',
+    purple = '#ae81ff',
+    red = '#EC7F86',
+    red2 = '#F97B58',
+    purered = '#ff0000',
+    darkred = '#5f0000',
+
+    green1 = '#0FC192',
+    green2 = '#caefb3',
+    green3 = '#abce00',
+    green4 = '#648c01',
+    green5 = '#2f5f02',
+    green6 = '#58bd62',
+    green7 = '#1A554e',
+    green8 = '#C6Dc93',
+    green9 = '#132a15',
+    greena = '#10210e',
+    greenb = '#046806',
+    greenc = '#065836',
+    greend = '#46f836',
+    greene = '#86c8b6',
+
+    cyan = '#A1EFE4',
+    br_green = '#9EC400',
+    br_yellow = '#E7C547',
+    br_yellow2 = '#D0AC7A',
+    br_blue = '#7AA6DA',
+    br_purple = '#B77EE0',
+    br_cyan = '#54CED6',
+    br_white = '#FFFFFF',
+
+    link = '#80CBF4',
+    salmon = '#F7856E',
+    teal = '#4DB3A0',
+    paleblue = '#d6e7f0',
+    magenta = '#D134C7',
+  }
+
+  local function emerald()
+    return {
+      bg = emerald_colors.dark,
+      bg_alt = emerald_colors.green9,
+      bg_darker = emerald_colors.darker,
+      fg = emerald_colors.white3,
+      bg2 = '#103b41',
+      statement = '#DbB0A0',
+      symbol = emerald_colors.yellow2,
+      operator = emerald_colors.red2,
+      label = emerald_colors.orange,
+      condition = emerald_colors.green3,
+      keyword = emerald_colors.cyan,
+      func = emerald_colors.green3,
+      method = emerald_colors.green6,
+      text = emerald_colors.white3,
+      comments = emerald_colors.green,
+      number = emerald_colors.orange2,
+      float = emerald_colors.orange,
+      char = emerald_colors.aqua,
+      variable = emerald_colors.white3,
+      parameter = vivaldi.orange,
+      class = emerald_colors.pink,
+      typedef = emerald_colors.teal,
+      builtin = emerald_colors.teal,
+      punctutation = emerald_colors.green4,
+      preproc = emerald_colors.br_cyan,
+      precondit = emerald_colors.white3,
+      tag = emerald_colors.orange2,
+      include = emerald_colors.orange,
+
+      field = emerald_colors.green8,
+      bool = '#C06431',
+      string = emerald_colors.green6,
+      const = emerald_colors.pink,
+      selection = '#474b51',
+      search_fg = emerald_colors.orange2,
+      search_bg = emerald_colors.grey,
+      inc_search = emerald_colors.green2,
+      contrast = '#1b1c2b',
+      less_active = emerald_colors.greena,
+      bracket = emerald_colors.orange,
+      active = emerald_colors.green9,
+      more_active = emerald_colors.green5,
+      border = emerald_colors.greenb,
+      line_numbers = emerald_colors.greenb,
+      highlight = '#315b40',
+      disabled = emerald_colors.darkgray,
+      cursor = '#a0d2ac',
+      accent = emerald_colors.br_green,
+      error = '#CA1414',
+      link = emerald_colors.bluee,
+      type = '#66d9af',
+    }
+  end
+
+  local middlenight_blue_colors = {
+    -- Common colors
+    white = '#EEFFFF',
+    white2 = '#E7F7F7',
+    white3 = '#D8EED9',
+    grey = '#d3d3d3',
+    darkgray = '#476b61',
+
+    dark = '#101022',
+    darker = '#040D16',
+    black = '#010B10',
+
+    caramel = '#f9c37a',
+    lightgrey = '#64645e',
+    warmgrey = '#657150',
+
+    brown = '#925632',
+    pink = '#df75b6',
+    purple = '#A75ED0',
+    violet = '#6f25f6',
+    green = '#76da84',
+    blue = '#5f95fa',
+    blue2 = '#0f85ff',
+    blue3 = '#0fA5CF',
+    blue4 = '#7fB5FF',
+    aqua = '#66c9cf',
+    yellow = '#ffca44',
+    yellow2 = '#c2ad54',
+    orange = '#F9AE58',
+    orange2 = '#cd8b59',
+    red = '#EC5F66',
+    red2 = '#F97B58',
+    purered = '#ff0000',
+    darkred = '#5f0000',
+
+    green1 = '#0FE192',
+    green2 = '#caefb3',
+    green3 = '#abce00',
+    green4 = '#648c01',
+    green5 = '#2f5f02',
+    green6 = '#589d62',
+    green7 = '#1A554e',
+    cyan = '#A1EFE4',
+    br_green = '#9EDD00',
+    br_green2 = '#9EFF30',
+    br_yellow = '#E7E547',
+    br_yellow2 = '#F0Fc7a',
+    br_blue = '#AAA6FA',
+    br_blue2 = '#CAD6FF',
+    br_purple = '#C77EF0',
+    br_cyan = '#54CED6',
+    br_white = '#FFFFFF',
+
+    salmon = '#F7856E',
+    teal = '#4DB380',
+    paleblue = '#b6b7f0',
+    magenta = '#D184C7',
+  }
+
+  local middlenight_blue = function()
+    return {
+      bg = middlenight_blue_colors.dark,
+      bg_alt = '#20202a',
+      bg_darker = middlenight_blue_colors.darker,
+      fg = '#ddeedd',
+      bg2 = '#201022',
+      statement = middlenight_blue_colors.br_yellow,
+      symbol = '#757db3',
+      operator = middlenight_blue_colors.purple,
+      label = middlenight_blue_colors.orange,
+      condition = vivaldi.blue3,
+      keyword = middlenight_blue_colors.auqa,
+      keyword_func = middlenight_blue_colors.br_purple,
+      func = middlenight_blue_colors.blue4,
+      method = middlenight_blue_colors.blue,
+      text = '#d0d5db',
+      comments = '#7171d3',
+      number = '#bb95fb',
+      float = middlenight_blue_colors.orange,
+      char = middlenight_blue_colors.aqua,
+      variable = middlenight_blue_colors.br_blue2,
+      parameter = '#c67eb9',
+      class = '#838cca',
+      typedef = '#c6c45e',
+      punctutation = middlenight_blue_colors.green4,
+      precondit = middlenight_blue_colors.aqua,
+
+      field = middlenight_blue_colors.br_blue,
+      bool = middlenight_blue_colors.cyan,
+      string = middlenight_blue_colors.teal,
+      const = '#52d1ce',
+      directory = middlenight_blue_colors.orange2,
+
+      selection = '#143062',
+      search_fg = '#a0a0d0',
+      search_bg = '#52408f',
+      contrast = '#1b203b',
+      less_active = '#242f3a',
+      bracket = middlenight_blue_colors.paleblue,
+      active = '#303051',
+      more_active = '#3f3671',
+      border = '#242938',
+      line_numbers = '#5d5286',
+      highlight = '#212b50',
+      disabled = middlenight_blue_colors.darkgray,
+      cursor = '#a0d2ac',
+      accent = '#8eadbd',
+      error = '#a61e20',
+      link = '#80ABF4',
+      tag = middlenight_blue_colors.blue2,
+      type = '#66d9af',
+    }
+  end
+
+  local earlysummer_colors = {
+    -- Common colors
+    white = '#EEFFFF',
+    white2 = '#E7F7F7',
+    white3 = '#A8BEC9',
+    grey = '#d3d3d3',
+    darkgray = '#476b61',
+
+    black = '#111420',
+    dark = '#212c31',
+    darker = '#15232e',
+    dark2 = '#313D46',
+
+    caramel = '#ffa37a',
+    lightgrey = '#64645e',
+    warmgrey = '#658180',
+
+    brown = '#925632',
+    pink = '#ef6596',
+    redwine = '#e95680',
+    green = '#76da84',
+    blue = '#7fb5fa',
+    blue2 = '#80e5fa',
+    blue3 = '#90f5fa',
+    aqua = '#66c9cf',
+    yellow = '#ffca94',
+    yellow2 = '#c2ad54',
+    orange = '#D99E58',
+    orange2 = '#cd8b59',
+    purple = '#d191ff',
+    red = '#EF5F86',
+    red1 = '#FF9F96',
+    red2 = '#F97B58',
+    purered = '#ff0080',
+    darkred = '#5f0030',
+
+    green1 = '#0FC192',
+    green2 = '#caefb3',
+    green3 = '#abce00',
+    dark_green = '#a0be79',
+    cyan = '#39DFE4',
+    br_green = '#9EC400',
+    br_yellow = '#E7C547',
+    br_yellow2 = '#d0ac7a',
+    br_blue = '#7AA6DA',
+    br_purple = '#B77EE0',
+    br_cyan = '#54CED6',
+    br_white = '#FFFFFF',
+
+    salmon = '#F7856E',
+    teal = '#4DB380',
+    paleblue = '#d6e7f0',
+    magenta = '#D184C7',
+    link = '#80ABF4',
+  }
+
+  local function earlysummer()
+    return {
+      bg = earlysummer_colors.dark,
+      bg_alt = earlysummer_colors.dark2,
+      bg_darker = earlysummer_colors.darker,
+      fg = '#bbccdd',
+      statement = earlysummer_colors.red1,
+      symbol = earlysummer_colors.yellow,
+      operator = earlysummer_colors.redwine,
+      label = earlysummer_colors.orange,
+      condition = earlysummer_colors.magenta,
+      keyword = earlysummer_colors.red,
+      keyword_func = earlysummer_colors.purple,
+      func = earlysummer_colors.blue2,
+      method = earlysummer_colors.br_cyan,
+      text = earlysummer_colors.white3,
+      comments = earlysummer_colors.warmgrey,
+      number = earlysummer_colors.brown,
+      float = earlysummer_colors.orange,
+      char = earlysummer_colors.aqua,
+      variable = earlysummer_colors.blue,
+      parameter = earlysummer_colors.pink,
+      class = earlysummer_colors.orange2,
+      typedef = earlysummer_colors.red2,
+      punctutation = earlysummer_colors.br_blue,
+
+      field = earlysummer_colors.caramel,
+      bool = '#C06431',
+      string = earlysummer_colors.dark_green,
+      const = earlysummer_colors.cyan,
+      directory = earlysummer_colors.blue,
+
+      selection = '#544062',
+      search_fg = earlysummer_colors.orange,
+      inc_search = earlysummer_colors.purple,
+      search_bg = '#303010',
+      contrast = earlysummer_colors.dark2,
+      less_active = '#202124',
+      bracket = earlysummer_colors.orange,
+      active = '#313043',
+      more_active = '#4f5681',
+      border = '#393F48',
+      line_numbers = '#5d6276',
+      highlight = '#4f4b60',
+      disabled = earlysummer_colors.darkgray,
+      cursor = '#a0d2ac',
+      accent = '#8eadbd',
+      error = earlysummer_colors.red2,
+      link = '#808BF4',
+      type = '#66d9af',
+    }
+  end
+
+  local dark_solar_colors = {
+    -- Common colors
+    white = '#ABBCBB',
+    white2 = '#97A7A7',
+    white3 = '#889EA9',
+    grey = '#006393',
+    gray = '#006393',
+    darkgray = '#074051',
+
+    bg = '#012731',
+    dark = '#012731',
+    darker = '#012026',
+    black = '#01141D',
+
+    caramel = '#ffa37a',
+    lightgrey = '#94a4be',
+    warmgrey = '#958180',
+
+    brown = '#925632',
+    pink = '#ff95b6',
+    redwine = '#e95680',
+    green = '#76ba6c',
+    blue = '#2f85da',
+    blue2 = '#4095ba',
+    blue3 = '#90f5fa',
+    aqua = '#66c9cf',
+    yellow = '#bf8a04',
+    yellow2 = '#c2ad54',
+    orange = '#D99E58',
+    orange2 = '#cd8b59',
+    purple = '#d13d8f',
+    red = '#D01F26',
+    br_red = '#F41F36',
+    red2 = '#F97B58',
+    purered = '#ff0000',
+    darkred = '#5f0000',
+
+    green1 = '#0FC192',
+    green2 = '#86aaac',
+    green3 = '#abce00',
+    dark_green = '#a0be70',
+    cyan = '#29A194',
+    br_green = '#56ae9c',
+    br_yellow = '#B77E37',
+    br_yellow2 = '#d0ac7a',
+    br_blue = '#3A96DA',
+    br_purple = '#974ED0',
+    br_cyan = '#54AEA6',
+    br_white = '#FCFCDF',
+
+    salmon = '#F7856E',
+    teal = '#4DB380',
+    paleblue = '#96e7f0',
+    magenta = '#D184C7',
+    link = '#80ABF4',
+  }
+
+  local dark_solar = function()
+    return {
+      bg = dark_solar_colors.bg,
+      bg_alt = '#083445',
+      bg_darker = dark_solar_colors.black,
+      fg = dark_solar_colors.white,
+      statement = dark_solar_colors.green2,
+      symbol = dark_solar_colors.br_cyan,
+      operator = dark_solar_colors.br_green,
+      label = dark_solar_colors.orange,
+      condition = dark_solar_colors.magenta,
+      keyword = dark_solar_colors.br_green,
+      keyword_func = dark_solar_colors.green2,
+      func = dark_solar_colors.blue2,
+      method = dark_solar_colors.br_cyan,
+      text = dark_solar_colors.blue2,
+      comments = dark_solar_colors.warmgrey,
+      number = dark_solar_colors.blue2,
+      float = dark_solar_colors.teal,
+      char = dark_solar_colors.aqua,
+      variable = dark_solar_colors.lightgrey,
+      parameter = dark_solar_colors.pink,
+      class = dark_solar_colors.orange2,
+      typedef = dark_solar_colors.red2,
+      punctutation = dark_solar_colors.br_blue,
+
+      field = dark_solar_colors.br_blue,
+      bool = '#C06431',
+      string = dark_solar_colors.br_green,
+      const = dark_solar_colors.cyan,
+      directory = dark_solar_colors.blue,
+
+      selection = '#234252',
+      search_fg = dark_solar_colors.yellow,
+      search_bg = '#303010',
+      contrast = '#1b1c2b',
+      less_active = '#203154',
+      bracket = dark_solar_colors.orange,
+      active = '#374854',
+      more_active = '#4f5681',
+      border = '#193F48',
+      line_numbers = '#2d5266',
+      highlight = '#2f4b80',
+      disabled = dark_solar_colors.darkgray,
+      cursor = '#f34a00',
+      accent = '#8ebddd',
+      error = dark_solar_colors.br_red,
+      link = '#407BF4',
+      type = dark_solar_colors.br_yellow,
+    }
+  end
+
+  local ukraine_colors = {
+    -- Common colors
+    white = '#EEFFDF',
+    white2 = '#E7F7F7',
+    white3 = '#D8EED9',
+    grey = '#d3d3d3',
+    darkgray = '#476b61',
+
+    dark = '#1056B8',
+    darker = '#1446a6',
+    black = '#012052',
+
+    caramel = '#f9c37a',
+    lightgrey = '#64645e',
+    warmgrey = '#657150',
+
+    brown = '#925632',
+    pink = '#ff95b6',
+    green = '#76da84',
+    blue = '#5f95fa',
+    aqua = '#66c9cf',
+    yellow = '#ffda14',
+    yellow2 = '#c2ad04',
+    orange = '#F9AE48',
+    orange2 = '#cd8b39',
+    purple = '#f1b1ff',
+    red = '#EC5F66',
+    red2 = '#F97B58',
+    purered = '#ff0000',
+    darkred = '#5f0000',
+
+    green1 = '#0FE192',
+    green2 = '#caefb3',
+    green3 = '#abce00',
+    green4 = '#648c01',
+    cyan = '#A1EFE4',
+    br_green = '#9EDD00',
+    br_green2 = '#9EFF30',
+    br_yellow = '#E7E527',
+    br_yellow2 = '#F0Fc4a',
+    br_blue = '#AAA6FA',
+    br_blue2 = '#2A56FF',
+    br_purple = '#C77EF0',
+    br_cyan = '#54CED6',
+    br_white = '#FFFFDF',
+
+    salmon = '#F7856E',
+    teal = '#4DB380',
+    paleblue = '#a6e7f0',
+    magenta = '#D184C7',
+  }
+
+  local ukraine = function()
+    return {
+      bg = ukraine_colors.dark,
+      bg_alt = '#2040b0',
+      bg_darker = ukraine_colors.darker,
+      fg = '#fdee1d',
+      bg2 = '#201022',
+      statement = ukraine_colors.br_yellow,
+      symbol = ukraine_colors.green,
+      operator = ukraine_colors.purple,
+      label = ukraine_colors.orange,
+      condition = ukraine_colors.cyan,
+      keyword = ukraine_colors.orange,
+      keyword_func = ukraine_colors.yellow,
+      func = ukraine_colors.purple,
+      method = ukraine_colors.pink,
+      text = '#f0f52b',
+      comments = '#a19103',
+      number = '#bb95fb',
+      float = ukraine_colors.orange,
+      char = ukraine_colors.aqua,
+      variable = ukraine_colors.br_yellow2,
+      parameter = '#c67eb9',
+      class = '#d3dcca',
+      typedef = '#c6c45e',
+      punctutation = ukraine_colors.green4,
+
+      field = ukraine_colors.br_yellow,
+      bool = ukraine_colors.cyan,
+      string = ukraine_colors.green1,
+      const = '#52d1ce',
+      directory = ukraine_colors.orange2,
+
+      selection = '#5470d2',
+      search_fg = '#f0f0f0',
+      search_bg = '#52408f',
+      contrast = '#1b20cb',
+      less_active = '#242fda',
+      bracket = ukraine_colors.paleblue,
+      active = '#3030E1',
+      more_active = '#3f36F1',
+      border = '#D4D938',
+      line_numbers = '#DdD286',
+      highlight = '#212bF0',
+      disabled = ukraine_colors.br_blue,
+      cursor = '#a0d2ac',
+      accent = '#cecd2d',
+      error = '#a61e20',
+      link = '#80ABF4',
+      type = '#66d9af',
+    }
+  end
+  local config = require('vivaldi.config').options
+  local style_name = config.style.name
+  -- Style specific colors
+  if style_name == 'darker' then
+    -- Darker theme style
+
+    vivaldi = LightenDarkenColorScheme(vivaldi, { -25, -20, -10 })
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi.bg = '#212121'
+    vivaldi.dark = '#212121'
+    vivaldi.darker = '#1C1C1C'
+    vivaldi.bg_alt = '#1A1A1A'
+    vivaldi.fg = '#B0BEC5'
+    vivaldi.text = '#9292A8'
+    vivaldi.comments = '#616161'
+    vivaldi.selection = '#474849'
+    vivaldi.contrast = '#1A1A1A'
+
+    vivaldi.less_active = '#24262a'
+    vivaldi.active = '#2f2335'
+    vivaldi.more_active = '#424252'
+    vivaldi.border = '#31314B'
+    vivaldi.line_numbers = '#525272'
+    vivaldi.highlight = '#423F6F'
+    vivaldi.disabled = '#40404A'
+    vivaldi.accent = '#FF9800'
+    if config.style.darker_contrast == true then
+      -- Lighter theme style with high contrast
+      vivaldi.comments = '#858585'
+      vivaldi.line_numbers = '#5C5C5C'
+    end
+  elseif style_name == 'limestone' then
+    -- limestone theme style
+
+    vivaldi.white = '#FFFFFF'
+    vivaldi.gray = '#818CA4'
+    vivaldi.black = '#606040'
+    vivaldi.red = '#E53935'
+    vivaldi.green = '#71A849'
+    vivaldi.green1 = '#51B829'
+    vivaldi.yellow = '#F6A434'
+    vivaldi.yellow1 = '#C6A414'
+    vivaldi.yellow2 = '#B69414'
+    vivaldi.blue = '#6182B8'
+    vivaldi.blue1 = '#5182D8'
+    vivaldi.paleblue = '#7786B0'
+    vivaldi.cyan = '#399DA5'
+    vivaldi.purple = '#7C4DDF'
+    vivaldi.orange = '#F76D47'
+    vivaldi.pink = '#EF5370'
+    vivaldi.violet = '#945eb8'
+    vivaldi.lime = '#98BE54'
+
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+
+    vivaldi.bg = '#EAEADA'
+    vivaldi.bg_alt = '#DFDFBF'
+    vivaldi.fg = '#345E6A'
+    vivaldi.text = '#547770'
+    vivaldi.comments = '#90A0B2'
+    vivaldi.selection = '#80CBC4'
+    vivaldi.contrast = '#DEDEDE'
+    vivaldi.less_active = '#E0E0D4'
+    vivaldi.active = '#E0D0D3'
+    vivaldi.more_active = '#C7C8A3'
+    vivaldi.border = '#A381E8'
+    vivaldi.line_numbers = '#AFC8AC'
+    vivaldi.highlight = '#C7C7A8'
+    vivaldi.disabled = '#A2A4A5'
+    vivaldi.cursor = '#272727'
+    vivaldi.parameter = '#5193a8'
+    vivaldi.type = '#A47EE8'
+    vivaldi.search_fg = '#FAC37D'
+    vivaldi.search_bg = vivaldi.blue1
+
+    vivaldi.accent = '#60BCD4'
+    vivaldi.keyword = vivaldi.orange
+  elseif style_name == 'palenight' then
+    -- Palenight theme style
+
+    -- print(vim.inspect(vivaldi))
+    vivaldi.bg = '#292D3E'
+    vivaldi.dark = '#292D3E'
+    vivaldi.darker = '#262738'
+    vivaldi.bg_alt = '#1B1E2B'
+    vivaldi.fg = '#A6ACCD'
+    vivaldi.text = '#818CB4'
+    vivaldi.comments = '#878EA5'
+    vivaldi.selection = '#44425F'
+    vivaldi.contrast = '#202331'
+    vivaldi.less_active = '#303145'
+    vivaldi.active = '#363743'
+    vivaldi.more_active = '#414863'
+    vivaldi.border = '#676E95'
+    vivaldi.line_numbers = '#5A5F98'
+    vivaldi.highlight = '#545287'
+    vivaldi.disabled = '#515772'
+    vivaldi.accent = '#AB47BC'
+  elseif style_name == 'deep ocean' then
+    -- Deep Ocean theme style
+
+    vivaldi = LightenDarkenColorScheme(vivaldi, { -10, -5, 5 })
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    -- print(vim.inspect(vivaldi))
+    vivaldi.bg = '#0F111A'
+    vivaldi.dark = '#0F111A'
+    vivaldi.darker = '#0D0F15'
+    vivaldi.bg_alt = '#090B10'
+    vivaldi.fg = '#8F93A2'
+    vivaldi.text = '#818CB4'
+    vivaldi.comments = '#666B7D'
+    vivaldi.selection = '#373448'
+    vivaldi.contrast = '#090B10'
+    vivaldi.less_active = '#141628'
+    vivaldi.active = '#202030'
+    vivaldi.more_active = '#3A3555'
+    vivaldi.border = '#312443'
+    vivaldi.line_numbers = '#5B5F91'
+    vivaldi.highlight = '#4F3F63'
+    vivaldi.disabled = '#464B5D'
+    vivaldi.accent = '#84FFFF'
+  elseif style_name == 'oceanic' then
+    vivaldi = LightenDarkenColorScheme(vivaldi, { 10, 10, 20 })
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    style_name = 'oceanic'
+    -- Oceanic theme style
+    vivaldi.bg = '#20272f'
+    vivaldi.dark = '#20272f'
+    vivaldi.darker = '#1A2429'
+    vivaldi.bg_alt = '#192027'
+    vivaldi.fg = '#B0BEC5'
+    vivaldi.text = '#89AFB4'
+    vivaldi.comments = '#666B8D'
+    vivaldi.selection = '#445E6A'
+
+    vivaldi.less_active = '#252f35'
+    vivaldi.contrast = '#1E272C'
+    vivaldi.active = '#26323f'
+    vivaldi.more_active = '#375354'
+    vivaldi.border = '#2A373E'
+    vivaldi.line_numbers = '#577FAF'
+    vivaldi.highlight = '#425B67'
+    vivaldi.disabled = '#415967'
+    vivaldi.accent = '#A0A6F8'
+  elseif style_name == 'moonlight' then
+    vivaldi = vim.tbl_extend('force', vivaldi, vivaldi_moonlight)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, moonlight())
+  elseif style_name == 'dracula' then
+    vivaldi = vim.tbl_extend('force', vivaldi, vivaldi_dracula)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, dracula())
+  elseif style_name == 'dracula_blood' then
+    vivaldi = vim.tbl_extend('force', vivaldi, vivaldi_dracula)
+    vivaldi = vim.tbl_extend('force', vivaldi, vivaldi_dracula_blood)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, dracula())
+    vivaldi = vim.tbl_extend('force', vivaldi, dracula_blood())
+  elseif style_name == 'monokai' or style_name == 'monokai_lighter' then
+    if style_name == 'monokai_lighter' then
+      vivaldi_monokai.bg = '#2F2F23'
+      vivaldi_monokai.bg_alt = '#33342d'
+      vivaldi_monokai.less_active = '#373830'
+      vivaldi_monokai.active = '#4f4947'
+      vivaldi_monokai.line_numbers = '#A2AF93'
+      vivaldi_monokai.accent = '#A9AF83'
+      vivaldi_monokai.selection = '#696F43'
+      vivaldi_monokai.contrast = vivaldi_monokai.less_active
+      vivaldi_monokai.comments = '#9E9F7D'
+    end
+    vivaldi = vim.tbl_extend('force', vivaldi, vivaldi_monokai)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, monokai())
+  elseif style_name == 'mariana' or style_name == 'mariana_lighter' then
+    vivaldi = vim.tbl_extend('force', vivaldi, mariana_colors)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    local ma = vim.tbl_extend('force', vivaldi, mariana())
+    if style_name == 'mariana_lighter' then
+      ma.bg = mariana_colors.blue5_day
+      ma.fg = mariana_colors.white2
+      ma.bg_alt = mariana_colors.blue2
+      ma.less_active = mariana_colors.blueB
+      ma.active = mariana_colors.blue7
+      ma.line_numbers = mariana_colors.blue6
+      ma.accent = ma.blueA
+      ma.contrast = ma.less_active
+    end
+    vivaldi = ma
+  elseif style_name == 'emerald' then
+    vivaldi = vim.tbl_extend('force', vivaldi, emerald_colors)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, emerald())
+  elseif style_name == 'middlenight_blue' then
+    vivaldi = vim.tbl_extend('force', vivaldi, middlenight_blue_colors)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, middlenight_blue())
+  elseif style_name == 'dark_solar' then
+    vivaldi = vim.tbl_extend('force', vivaldi, dark_solar_colors)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, dark_solar())
+  elseif style_name == 'ukraine' then
+    vivaldi = vim.tbl_extend('force', vivaldi, ukraine_colors)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, ukraine())
+  elseif style_name == 'earlysummer' or style_name == 'earlysummer_lighter' then
+    vivaldi = vim.tbl_extend('force', vivaldi, earlysummer_colors)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, earlysummer())
+    if style_name == 'earlysummer_lighter' then
+      vivaldi.bg = '#292f3d'
+      vivaldi.bg_alt = '#353449'
+      vivaldi.less_active = '#212426'
+      vivaldi.active = '#30414F'
+      vivaldi.line_numbers = '#90A1AD'
+      vivaldi.accent = '#A0B1B0'
+      vivaldi.selection = '#607180'
+      vivaldi.comments = '#87AFB3'
+      vivaldi.contrast = vivaldi.less_active
+    end
+
+    vivaldi = vim.tbl_extend('force', vivaldi, earlysummer())
+  else
+    vivaldi = vim.tbl_extend('force', vivaldi, vivaldi_monokai)
+    vivaldi = vim.tbl_extend('force', vivaldi, get_default(vivaldi))
+    vivaldi = vim.tbl_extend('force', vivaldi, monokai())
+  end
+
+  -- Optional colors
+
+  -- Enable contrast sidebars, floating windows and popup menus
+  if config.contrast.enable == false then
+    vivaldi.sidebar = vivaldi.bg
+    vivaldi.floating = vivaldi.bg
+  else
+    vivaldi.sidebar = vivaldi.bg_alt
+    vivaldi.floating = vivaldi.bg_alt
+  end
+
+  if config.style.deep_black == true then
+    vivaldi.black = '#000000'
+    local style = style_name
+    if
+      style == 'deep ocean'
+      or style == 'darker'
+      or style == 'moonlight'
+      or style == 'middlenight_blue'
+    then
+      vivaldi.bg = vivaldi.black
+    end
+  end
+
+  -- Set black titles for limestone style
+  if style_name == 'limestone' then
+    vivaldi.title = vivaldi.black
+  else
+    vivaldi.title = vivaldi.white
+  end
+
+  -- Apply user defined colors
+  if type(config.custom_colors) ~= 'table' then
+    error('Custom colors must be a table')
+  end
+  -- Iterate through the table
+  for key, value in pairs(config.custom_colors) do
+    -- If the key doesn't exist:
+    if not vivaldi[key] then
+      error('Color ' .. key .. ' does not exist')
+    end
+    -- If it exists and the string starts with a "#"
+    if string.sub(value, 1, 1) == '#' then
+      -- Hex override
+      vivaldi[key] = value
+      -- IF it doesn't, dont accept it
+    else
+      -- Another group
+      if not vivaldi[value] then
+        error('Color ' .. value .. ' does not exist')
+      end
+      vivaldi[key] = vivaldi[value]
+    end
+  end
+
+  vivaldi_color_table = vivaldi
+  return vivaldi
+end
+
+local function color_table()
+  return vivaldi_color_table
+end
+
+return { vivaldi = vivaldi_init, color_table = color_table, lighter_darker = LightenDarkenColorScheme }
